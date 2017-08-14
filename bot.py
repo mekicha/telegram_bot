@@ -1,24 +1,42 @@
 # -*- coding: utf-8 -*-
 import logging
+import telegram
+from telegram.error import NetworkError, Unauthorized
+from time import sleep
 import config
-import telebot 
 
-import logging
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
+update_id = None
 
-logger = logging.getLogger(__name__)
+def main():
+    global update_id
+    bot = telegram.Bot(config.TOKEN)
 
-bot = telebot.TeleBot(config.TOKEN)
+    try:
+        update_id = bot.get_updates()[0].update_id
+    except IndexError:
+        update_id = None
 
-@bot.message_handler(commands=['start', 'help'])
-def send_welcome(message):
-    bot.reply_to(message, 'Hey, how are you today?')
-    
-@bot.message_handler(content_types=["text"])
-def echo_back(message):
-    bot.send_message(message.chat.id, message.text)
+    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-if __name__ == "__main__":
-    bot.polling(none_stop=True)
+    while True:
+        try:
+            echo(bot)
+        except NetworkError:
+            sleep(1)
+        except Unauthorized:
+            # The user has removed or blocked the bot.
+            update_id += 1
+
+
+def echo(bot):
+    global update_id
+    for update in bot.get_updates(offset=update_id, timeout=10):
+        update_id = update.update_id + 1
+
+        if update.message: 
+            update.message.reply_text(update.message.text)
+
+
+if __name__ == '__main__':
+main()
