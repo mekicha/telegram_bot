@@ -1,42 +1,54 @@
 # -*- coding: utf-8 -*-
 import logging
-import telegram
-from telegram.error import NetworkError, Unauthorized
-from time import sleep
-import config
+from config.config import config
+from telegram.ext import Updater
+from telegram.ext import CommandHandler, MessageHandler
+from telegram.ext import Filters
+import Database 
 
+updater = Updater(token=config["token"])
+dispatcher = updater.dispatcher
 
-update_id = None
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
-def main():
-    global update_id
-    bot = telegram.Bot(config.TOKEN)
+def start(bot, update):
+    # on start,  save user to database
+    user = update.message.from_user
+    # save (user.id, user.first_name, user.last_name, user.username)
+    print("user:" ,user)
+    bot.send_message(chat_id=update.message.chat_id, text="Hello")
 
-    try:
-        update_id = bot.get_updates()[0].update_id
-    except IndexError:
-        update_id = None
+def unknown(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text="Sorry")
 
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+def sendArticles(user, article):
+    """ Article contains id, title, short summary and link
+    user has chat_id, user's first name(personalization)
+    Reply is sent as marked up html.
+    After sending, save chat id and article id to avoid repeating
+    """
+    pass
+def subscribe(bot, update):
+    """ When user subscribes to receive articles, we send a custom
+    message to user. Send the first article, with some instructions
+    (namely, when next article will come and how to unsubscribe)
+    """
+    pass
+def unsubscribe(bot, update):
+    """ When user unsubscibes, send message that he has been
+    unsubscribed, and remove him from the subscription list
+    """
+    pass 
 
-    while True:
-        try:
-            echo(bot)
-        except NetworkError:
-            sleep(1)
-        except Unauthorized:
-            # The user has removed or blocked the bot.
-            update_id += 1
+start_handler = CommandHandler('start', start)
+unknown_handler = MessageHandler(Filters.command, unknown)
 
+dispatcher.add_handler(start_handler)
+dispatcher.add_handler(unknown_handler)
 
-def echo(bot):
-    global update_id
-    for update in bot.get_updates(offset=update_id, timeout=10):
-        update_id = update.update_id + 1
-
-        if update.message: 
-            update.message.reply_text(update.message.text)
 
 
 if __name__ == '__main__':
-main()
+    updater.start_polling()
