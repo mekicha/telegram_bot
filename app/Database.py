@@ -10,7 +10,7 @@ class Database:
     
     def select_story_id(self, story_id):
         with self.conn:
-            return self.cursor.execute('SELECT id from hackernews WHERE id=?', (story_id,)).fetchone()
+            return self.cursor.execute('SELECT id from hackernews WHERE id=?', (story_id,)).fetchone()[0]
     def select_all_news(self):
         with self.conn:
             return self.cursor.execute('SELECT * FROM hackernews').fetchall()
