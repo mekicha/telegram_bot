@@ -1,42 +1,30 @@
 # -*- coding: utf-8 -*-
 import logging
-import telegram
-from telegram.error import NetworkError, Unauthorized
-from time import sleep
-import config
+from config.config import config
+from telegram.ext import Updater
+from telegram.ext import CommandHandler, MessageHandler
+from telegram.ext import Filters
 
+updater = Updater(token=config["token"])
+dispatcher = updater.dispatcher
 
-update_id = None
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
-def main():
-    global update_id
-    bot = telegram.Bot(config.TOKEN)
+def start(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text="Hello")
 
-    try:
-        update_id = bot.get_updates()[0].update_id
-    except IndexError:
-        update_id = None
+def unknown(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text="Sorry")
 
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+start_handler = CommandHandler('start', start)
+unknown_handler = MessageHandler(Filters.command, unknown)
 
-    while True:
-        try:
-            echo(bot)
-        except NetworkError:
-            sleep(1)
-        except Unauthorized:
-            # The user has removed or blocked the bot.
-            update_id += 1
+dispatcher.add_handler(start_handler)
+dispatcher.add_handler(unknown_handler)
 
-
-def echo(bot):
-    global update_id
-    for update in bot.get_updates(offset=update_id, timeout=10):
-        update_id = update.update_id + 1
-
-        if update.message: 
-            update.message.reply_text(update.message.text)
 
 
 if __name__ == '__main__':
-main()
+    updater.start_polling()
